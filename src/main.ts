@@ -1,10 +1,5 @@
 import './style.css'
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    
-    <h1>Auction house</h1>
-
-    
-  </div>
-`
+const root = document.getElementById('app-content')!
+root.innerHTML = `
+  <h1 class="flex justify-center border-2 border-blue-500">Auction House</h1>`
