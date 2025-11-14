@@ -51,10 +51,12 @@ export async function apiClient(
     const response = await fetch(url, config);
 
     if (!response.ok) {
-      let errorData: any = {};
+      let errorData: Record<string, any> = {};
       try {
         errorData = await response.json();
-      } catch {}
+      } catch {
+        // ignore JSON parse failures and fall back to generic message
+      }
       const message =
         errorData.errors?.[0]?.message ||
         errorData.message ||
