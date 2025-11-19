@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@tailwind utilities;
+
 :root {
   font-family: "Inria Serif",system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -26,3 +26,4 @@ body {
 
 
 .main-color { background-color: #232C3D; }
+.bg-color { background-color: #E9F1FC; }

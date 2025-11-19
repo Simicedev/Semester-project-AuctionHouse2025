@@ -4,6 +4,7 @@ import { renderLogin } from "./pages/login";
 import { renderRegister } from "./pages/register";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
+import { renderView, ensureFooter } from "./layout/layout";
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   
   window.addEventListener("load", () => {
@@ -19,17 +20,22 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 };
 
 
-// Simple home view
-function renderHome() {
-  const outlet = document.getElementById("app-content");
-  if (!outlet) return;
-  outlet.innerHTML = `
-    <section class="p-6">
-      <h1 class="text-2xl font-bold">Welcome</h1>
-      <p>Use the navigation to Login or Register.</p>
-    </section>
+// Example component for the home page (can be expanded later)
+function HomeHero(): HTMLElement {
+  const section = document.createElement("section");
+  section.className = "p-6 space-y-4";
+  section.innerHTML = `
+    <h1 class="text-xl font-bold">Welcome to sm-auctionhouse2025!</h1>
+    <p class="mt-2">Browse, bid, and win your favorite items.</p>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4" id="featured-listings"></div>
   `;
+  return section;
 }
+
+// Home view using layout utilities
+
+
+
 
 function ensureNav(): HTMLElement {
   let nav = document.getElementById("site-nav") as HTMLElement | null;
@@ -159,9 +165,15 @@ const outletEl = document.getElementById("app-content") as HTMLElement | null;
 const router = new Router(routes, outletEl ?? document.body, renderNotFound);
 
 // Initial render
-renderNav();
+
 router.resolve();
 
 window.addEventListener("auth:changed", () => {
   renderNav();
 });
+
+function renderHome() {
+  ensureFooter();
+  renderView(HomeHero());
+  renderNav();
+}
