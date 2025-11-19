@@ -1,9 +1,10 @@
 // ...existing code...
-import { post } from "../apiClient/apiClient.ts";
+import { post, get } from "../apiClient/apiClient.ts";
 
 const TOKEN_KEY = "accessToken";
 const NAME_KEY = "currentUserName";
 const EMAIL_KEY = "currentUserEmail";
+const AVATAR_KEY = "profilePicture";
 
 export type AuthState = {
   accessToken: string;
@@ -13,6 +14,10 @@ export type AuthState = {
 
 export function isAuthenticated(): boolean {
   return !!localStorage.getItem(TOKEN_KEY);
+}
+
+export function getProfilePicture(): string | null {
+  return localStorage.getItem(AVATAR_KEY);
 }
 
 export function getUserName(): string | null {
@@ -37,12 +42,15 @@ export function setAuth(state: AuthState) {
   if (state.name) localStorage.setItem(NAME_KEY, state.name);
   if (state.email) localStorage.setItem(EMAIL_KEY, state.email);
   emitAuthChanged();
+  // After setting auth, attempt to refresh avatar asynchronously
+  refreshAvatarFromProfile().catch(() => {});
 }
 
 export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(NAME_KEY);
   localStorage.removeItem(EMAIL_KEY);
+  localStorage.removeItem(AVATAR_KEY);
   emitAuthChanged();
 }
 
@@ -88,6 +96,14 @@ export async function loginAccount(params: { email: string; password: string }) 
       name: profile.name,
       email: profile.email,
     });
+    // If login response already contains avatar url in profile.avatar?.url use it immediately
+    const immediateAvatarUrl = profile.avatar?.url || profile.avatar;
+    if (typeof immediateAvatarUrl === "string" && immediateAvatarUrl.startsWith("http")) {
+      localStorage.setItem(AVATAR_KEY, immediateAvatarUrl);
+      emitAuthChanged();
+    } else {
+      await refreshAvatarFromProfile().catch(() => {});
+    }
     console.log("Login successful:", {
       name: profile.name,
       email: profile.email,
@@ -127,3 +143,28 @@ form?.addEventListener("submit", async (e) => {
   }
 });
 // ...existing code...
+
+// Helper: request current profile and store avatar url
+export async function refreshAvatarFromProfile() {
+  const name = getUserName();
+  if (!name || !isAuthenticated()) return;
+  try {
+    const response = await get(`/auction/profiles/${encodeURIComponent(name)}`);
+    const avatarUrl = response?.data?.avatar?.url;
+    if (avatarUrl && typeof avatarUrl === "string") {
+      localStorage.setItem(AVATAR_KEY, avatarUrl);
+      emitAuthChanged();
+    }
+  } catch {
+    // Silent failure (network / 404) – keep existing avatar
+  }
+}
+
+export function setProfilePicture(url?: string) {
+  if (!url) {
+    localStorage.removeItem(AVATAR_KEY);
+  } else if (url.startsWith("http")) {
+    localStorage.setItem(AVATAR_KEY, url);
+  }
+  emitAuthChanged();
+}
