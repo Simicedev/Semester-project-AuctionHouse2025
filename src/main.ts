@@ -4,7 +4,7 @@ import { renderLogin } from "./pages/login";
 import { renderRegister } from "./pages/register";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
-import { renderView, ensureFooter } from "./layout/layout";
+import { renderView } from "./layout/layout";
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   
   window.addEventListener("load", () => {
@@ -22,8 +22,9 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 
 // Example component for the home page (can be expanded later)
 function HomeHero(): HTMLElement {
+  const app = document.getElementById("app-root");
   const section = document.createElement("section");
-  section.className = "p-6 space-y-4";
+  section.className = "bg-color p-6 space-y-4";
   section.innerHTML = `
     <h1 class="text-xl font-bold">Welcome to sm-auctionhouse2025!</h1>
     <p class="mt-2">Browse, bid, and win your favorite items.</p>
@@ -33,7 +34,36 @@ function HomeHero(): HTMLElement {
 }
 
 // Home view using layout utilities
-
+export function ensureFooter(): HTMLElement {
+  let root = document.getElementById("app-root") as HTMLElement | null;
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "app-root";
+    root.className = "min-h-screen flex flex-col";
+    document.body.appendChild(root);
+  }
+  let footer = document.getElementById("site-footer") as HTMLElement | null;
+  if (!footer) {
+    footer = document.createElement("footer");
+    footer.id = "site-footer";
+    footer.className = "flex flex-col mt-auto p-6 text-sm text-gray-400 border-t border-gray-800 main-color";
+      footer.innerHTML = `
+      <div class="mb-2 gap-6 flex flex-wrap flex-col justify-center">
+            <span class="mx-2 text-2xl">AuctionHouse</span>
+            <span class="mx-2">Worlds largest auction house since 1950</span>
+            <span class="mx-2">Oslo / Kristiansand, Henrik Wergelands gate 93</span>
+            <span class="mx-2">info@auctionhouse.com</span>
+            <span class="mx-2">+47 123 45 678</span>
+        </div>
+        
+        <div class="mt-4 border-t"></div>
+            <span class="mt-6">&copy; ${new Date().getFullYear()} AuctionHouse. All rights reserved.</span>
+            `
+        
+    root.appendChild(footer);
+  }
+  return footer;
+}
 
 
 
@@ -53,6 +83,7 @@ function ensureNav(): HTMLElement {
   return nav;
 }
 
+
 function renderNav() {
   const nav = ensureNav();
   const authenticated = isAuthenticated();
@@ -60,7 +91,7 @@ function renderNav() {
   nav.innerHTML = authenticated
     ? `
     <nav class="relative main-color after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-white/10">
-      <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+      <div class="mx-auto px-2 sm:px-6 lg:px-8">
         <div class="relative flex h-16 items-center justify-between">
           <div class="absolute inset-y-0 left-0 flex items-center sm:hidden">
             <!-- Mobile menu button-->
@@ -82,11 +113,12 @@ function renderNav() {
                 <a href="#" aria-current="page" class="rounded-md bg-gray-950/50 px-3 py-2 text-sm font-medium text-white">Home</a>
                 <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">My collection</a>
                 <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">+ Create Listing</a>
-                <div class="rounded-md px-3 py-2 text-sm font-medium">Credits</div>
+                
               </div>
             </div>
           </div>
           <div class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+          <div class="rounded-md px-3 py-2 text-sm font-medium">Credits</div>
             <button type="button" class="relative rounded-full p-1 text-gray-400 hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500">
               <span class="absolute -inset-1.5"></span>
               <span class="sr-only">View notifications</span>
