@@ -4,7 +4,10 @@ import { renderLogin } from "./pages/login";
 import { renderRegister } from "./pages/register";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
-import { renderView } from "./layout/layout";
+import { createHTML } from "./services/utils";
+import { fetchListings } from "./services/listingsAPI";
+let countdownInterval: number | null = null;
+
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   
   window.addEventListener("load", () => {
@@ -20,28 +23,23 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 };
 
 
-// Example component for the home page (can be expanded later)
-function HomeHero(): HTMLElement {
-  const app = document.getElementById("app-root");
-  const section = document.createElement("section");
-  section.className = "bg-color p-6 space-y-4";
-  section.innerHTML = `
-    <h1 class="text-xl font-bold">Welcome to sm-auctionhouse2025!</h1>
-    <p class="mt-2">Browse, bid, and win your favorite items.</p>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4" id="featured-listings"></div>
-  `;
-  return section;
+// Ensure the page uses a simple app shell so footer sits correctly
+function ensureAppShell() {
+  document.body.classList.add("min-h-screen", "flex", "flex-col");
+  let outlet = document.getElementById("app-content") as HTMLElement | null;
+  if (!outlet) {
+    outlet = document.createElement("main");
+    outlet.id = "app-content";
+    document.body.appendChild(outlet);
+  }
+  outlet.classList.add("flex-1");
 }
+
 
 // Home view using layout utilities
 export function ensureFooter(): HTMLElement {
-  let root = document.getElementById("app-root") as HTMLElement | null;
-  if (!root) {
-    root = document.createElement("div");
-    root.id = "app-root";
-    root.className = "min-h-screen flex flex-col";
-    document.body.appendChild(root);
-  }
+  const outlet = document.getElementById("app-content") as HTMLElement | null;
+  const root = (outlet?.parentElement ?? document.body) as HTMLElement;
   let footer = document.getElementById("site-footer") as HTMLElement | null;
   if (!footer) {
     footer = document.createElement("footer");
@@ -60,7 +58,12 @@ export function ensureFooter(): HTMLElement {
             <span class="mt-6">&copy; ${new Date().getFullYear()} AuctionHouse. All rights reserved.</span>
             `
         
-    root.appendChild(footer);
+    // If we have an outlet, place the footer after it; otherwise append to root
+    if (outlet && outlet.parentElement) {
+      outlet.parentElement.appendChild(footer);
+    } else {
+      root.appendChild(footer);
+    }
   }
   return footer;
 }
@@ -110,15 +113,15 @@ function renderNav() {
             <div class="hidden sm:ml-6 sm:block">
               <div class="flex space-x-4">
                 <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
-                <a href="#" aria-current="page" class="rounded-md bg-gray-950/50 px-3 py-2 text-sm font-medium text-white">Home</a>
-                <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">My collection</a>
-                <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">+ Create Listing</a>
+                <a href="/" aria-current="page" class="rounded-md px-3 py-2 text-sm font-medium text-white">Home</a>
+                <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-white/5 ">My collection</a>
+                <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-green-700  bg-green-600">+ Create Listing</a>
                 
               </div>
             </div>
           </div>
           <div class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-          <div class="rounded-md px-3 py-2 text-sm font-medium">Credits</div>
+          <div class="rounded-md px-3 py-2 text-sm font-medium text-white">Credits</div>
             <button type="button" class="relative rounded-full p-1 text-gray-400 hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500">
               <span class="absolute -inset-1.5"></span>
               <span class="sr-only">View notifications</span>
@@ -149,10 +152,10 @@ function renderNav() {
       <el-disclosure id="mobile-menu" hidden class="block sm:hidden">
         <div class="space-y-1 px-2 pt-2 pb-3">
           <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
-          <a href="#" aria-current="page" class="block rounded-md bg-gray-950/50 px-3 py-2 text-base font-medium text-white">Home</a>
-          <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-white/5 hover:text-white">My collection</a>
-          <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-white/5 hover:text-white">+ Create Listing</a>
-          <div class="block rounded-md px-3 py-2 text-base font-medium">Credits</div>
+          <a href="/" aria-current="page" class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Home</a>
+          <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-white/5 hover:text-white">My collection</a>
+          <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
+          <div class="block rounded-md px-3 py-2 text-base font-medium text-white">Credits</div>
         </div>
       </el-disclosure>
 </nav>
@@ -183,10 +186,18 @@ function renderNav() {
 function renderNotFound() {
   const outlet = document.getElementById("app-content");
   if (!outlet) return;
-  outlet.innerHTML = `<section class="p-6"><h1 class="text-xl font-bold">404 - Page not found</h1></section>`;
+  const el = createHTML(`
+    <section class="p-6">
+      <h1 class="text-xl font-bold">404 - Page not found</h1>
+    </section>
+  `);
+  if (el) outlet.replaceChildren(el);
 }
 
+
+
 // Initialize router
+ensureAppShell();
 const routes: Route[] = [
   { path: "/", view: renderHome },
   { path: "/login", view: renderLogin },
@@ -205,7 +216,109 @@ window.addEventListener("auth:changed", () => {
 });
 
 function renderHome() {
-  ensureFooter();
-  renderView(HomeHero());
   renderNav();
+  ensureFooter();
+  const outlet = document.getElementById("app-content");
+  if (!outlet) return;
+  const el = createHTML(`
+    <section>
+        <div class="flex flex-col items-center p-6 gap-6 bg-white rounded-lg">
+          <p class="text-2xl font-bold">HammerAuctions</p>
+          <div class="flex flex-row gap-6">
+          <a href="#" class="font-bold">Browse All Listings</a>
+        </div>
+      </div>
+      <div class="hero-section main-color text-white py-10 mb-6">
+        
+      </div>
+      <div class="mx-auto max-w-7xl px-6 py-8">
+        <h2 class="text-xl font-semibold mb-3 text-black">Latest listings</h2>
+        <div id="home-listings" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </div>
+    </section>
+
+    
+  `);
+  if (el) outlet.replaceChildren(el);
+  loadHomeListings();
+}
+
+function formatTimeLeft(endsAtIso: string): string {
+  const now = Date.now();
+  const end = new Date(endsAtIso).getTime();
+  const ms = Math.max(0, end - now);
+  const totalMinutes = Math.floor(ms / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  const seconds = Math.floor((ms % 60000) / 1000);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  return `${minutes}m ${seconds}s`;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function loadHomeListings() {
+  // Clear any existing countdown interval to avoid duplicates
+  if (countdownInterval !== null) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  const grid = document.getElementById("home-listings");
+  if (!grid) return;
+  grid.innerHTML = `<div class="text-white">Loading listings…</div>`;
+  try {
+    const { data } = await fetchListings({ _active: true, sort: "endsAt", sortOrder: "asc", limit: 6 });
+    if (!data || data.length === 0) {
+      grid.innerHTML = `<div class="text-white/80">No listings found.</div>`;
+      return;
+    }
+    const fragments = document.createDocumentFragment();
+    data.forEach((item) => {
+      const cover = item.media?.[0]?.url ?? "";
+      const title = item.title ?? "Untitled";
+      const descRaw = (item.description ?? "").trim();
+      const descShortRaw = descRaw.length > 140 ? `${descRaw.slice(0, 137)}…` : descRaw;
+      const description = escapeHtml(descShortRaw);
+      const timeLeft = formatTimeLeft(item.endsAt);
+      const bidsCount = item._count?.bids ?? 0;
+      const card = createHTML(`
+        <article class="flex flex-col text-center items-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
+          ${cover ? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover">` : ""}
+          <div class="p-4">
+            <h3 class="text-lg font-semibold mb-2 text-black">${title}</h3>
+            ${description ? `<p class="text-sm text-gray-600 mb-2">${description}</p>` : ""}
+            <div class="flex items-center justify-center gap-2 text-sm w-full">
+              <span class="rounded-md bg-green-600 px-2 py-0.5 text-white time-left" data-ends-at="${item.endsAt}">Ends in ${timeLeft}</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-700">Bids: ${bidsCount}</p>
+            <a href="/listings/${item.id}" data-link class="inline-block mt-3 rounded-md bg-blue-600 text-white px-3 py-1">View and Bid</a>
+          </div>
+        </article>
+      `);
+      if (card) fragments.appendChild(card);
+    });
+    grid.replaceChildren(fragments);
+
+    // Start live countdown updater (once per page)
+    countdownInterval = window.setInterval(() => {
+      const badges = document.querySelectorAll<HTMLElement>(".time-left[data-ends-at]");
+      badges.forEach((badge) => {
+        const endsAt = badge.getAttribute("data-ends-at");
+        if (!endsAt) return;
+        const text = `Ends in ${formatTimeLeft(endsAt)}`;
+        badge.textContent = text;
+      });
+    }, 1000);
+  } catch (err: any) {
+    grid.innerHTML = `<div class="text-red-300">Failed to load listings: ${err?.message ?? "Unknown error"}</div>`;
+  }
 }
