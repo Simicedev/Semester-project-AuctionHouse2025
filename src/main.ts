@@ -139,7 +139,7 @@ function renderNav() {
               </button>
 
               <el-menu anchor="bottom end" popover class="w-48 origin-top-right rounded-md bg-gray-800 py-1 outline -outline-offset-1 outline-white/10 transition transition-discrete [--anchor-gap:--spacing(2)] data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                <div class="block px-4 py-2 text-sm text-gray-300">Hello, ${name}</div>
+                <div class="block px-4 py-2 text-sm text-gray-300">Logged in: ${name}</div>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden">Your profile</a>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden">Settings</a>
                 <a href="#" data-logout class="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden">Sign out</a>
@@ -215,6 +215,20 @@ window.addEventListener("auth:changed", () => {
   renderNav();
 });
 
+// Re-fetch listings when crossing the mobile/desktop breakpoint
+const reloadListing = window.matchMedia("(max-width: 639px)");
+const onBreakpointChange = () => {
+  // Only reload if we're on the home page (grid exists)
+  if (document.getElementById("home-listings")) {
+    loadHomeListings();
+  }
+};
+if (typeof reloadListing.addEventListener === "function") {
+  reloadListing.addEventListener("change", onBreakpointChange);
+} else if (typeof (reloadListing as any).addListener === "function") {
+  (reloadListing as any).addListener(onBreakpointChange);
+}
+
 function renderHome() {
   renderNav();
   ensureFooter();
@@ -222,12 +236,17 @@ function renderHome() {
   if (!outlet) return;
   const el = createHTML(`
     <section>
-        <div class="flex flex-col items-center p-6 gap-6 bg-white rounded-lg">
-          <p class="text-2xl font-bold">HammerAuctions</p>
-          <div class="flex flex-row gap-6">
-          <a href="#" class="font-bold">Browse All Listings</a>
+        <div class="flex flex-col items-center p-8 gap-4 bg-white rounded-lg shadow">
+          <p class="text-3xl sm:text-4xl font-extrabold tracking-tight">
+            
+            <span class="bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-blue-600">HammerAuctions</span>
+          </p>
+          <p class="text-center text-gray-600 max-w-prose">Discover unique items and bid live. Join the excitement and win your next treasure.</p>
+          <div class="flex flex-row gap-3">
+            <a href="#" class="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">Browse All Listings</a>
+            <a href="#" class="inline-flex items-center rounded-md border border-gray-300 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-100">How It Works</a>
+          </div>
         </div>
-      </div>
       <div class="hero-section main-color text-white py-10 mb-6">
         
       </div>
@@ -235,11 +254,25 @@ function renderHome() {
         <h2 class="text-xl font-semibold mb-3 text-black">Latest listings</h2>
         <div id="home-listings" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
       </div>
+      
+      <div class="mx-auto max-w-7xl px-6 py-8 main-color text-white rounded-lg shadow-lg mb-10">
+        <p class="text-3xl mb-4">Online evaluation</p>
+        <p class="text-md ">
+            Send in your items you’d like to auction away!
+            One of our professional and certified “item handlers” will
+            confirm your price for you by doing extensive research
+            on your item!
+            Maybe you’ve got a hidden gem?
+
+            Press read more to learn more about our online evaluation programme!
+          </p>
+      </div>
     </section>
 
     
   `);
   if (el) outlet.replaceChildren(el);
+  loadHeroHighlight();
   loadHomeListings();
 }
 
@@ -276,7 +309,11 @@ async function loadHomeListings() {
   if (!grid) return;
   grid.innerHTML = `<div class="text-white">Loading listings…</div>`;
   try {
-    const { data } = await fetchListings({ _active: true, sort: "endsAt", sortOrder: "asc", limit: 6 });
+    const matchesSmBreakpoint = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 639px)").matches;
+    const widthMobile = (window.innerWidth || document.documentElement.clientWidth) < 640;
+    const isMobile = matchesSmBreakpoint || widthMobile; // Treat as mobile if either check says so
+    const limit = isMobile ? 3 : 6;
+    const { data } = await fetchListings({ _active: true, sort: "endsAt", sortOrder: "asc", limit });
     if (!data || data.length === 0) {
       grid.innerHTML = `<div class="text-white/80">No listings found.</div>`;
       return;
@@ -286,21 +323,21 @@ async function loadHomeListings() {
       const cover = item.media?.[0]?.url ?? "";
       const title = item.title ?? "Untitled";
       const descRaw = (item.description ?? "").trim();
-      const descShortRaw = descRaw.length > 140 ? `${descRaw.slice(0, 137)}…` : descRaw;
+      const descShortRaw = descRaw.length > 40 ? `${descRaw.slice(0, 37)}…` : descRaw;
       const description = escapeHtml(descShortRaw);
       const timeLeft = formatTimeLeft(item.endsAt);
       const bidsCount = item._count?.bids ?? 0;
       const card = createHTML(`
-        <article class="flex flex-col text-center items-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
+        <article class="flex flex-col text-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
           ${cover ? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover">` : ""}
-          <div class="p-4">
-            <h3 class="text-lg font-semibold mb-2 text-black">${title}</h3>
-            ${description ? `<p class="text-sm text-gray-600 mb-2">${description}</p>` : ""}
-            <div class="flex items-center justify-center gap-2 text-sm w-full">
-              <span class="rounded-md bg-green-600 px-2 py-0.5 text-white time-left" data-ends-at="${item.endsAt}">Ends in ${timeLeft}</span>
+          <div class="p-4 relative h-64 flex flex-col overflow-hidden">
+            <h3 class="text-xl font-semibold mb-2 text-black line-clamp-2">${title}</h3>
+            ${description ? `<p class="text-base text-gray-600 mb-2 leading-snug line-clamp-3">${description}</p>` : ""}
+            <div class="flex items-center justify-center gap-2 text-base w-full">
+              <span class="rounded-md bg-green-600 px-3 py-1 text-white time-left" data-ends-at="${item.endsAt}">Ends in ${timeLeft}</span>
             </div>
-            <p class="mt-2 text-sm text-gray-700">Bids: ${bidsCount}</p>
-            <a href="/listings/${item.id}" data-link class="inline-block mt-3 rounded-md bg-blue-600 text-white px-3 py-1">View and Bid</a>
+            <p class="mt-2 text-base text-gray-700"> Active Bids: ${bidsCount}</p>
+            <a href="/listings/${item.id}" data-link class="mt-auto inline-block rounded-md bg-blue-600 text-white px-5 py-3 text-xl font-semibold shadow-sm hover:bg-blue-700 transition">View and Bid</a>
           </div>
         </article>
       `);
@@ -320,5 +357,57 @@ async function loadHomeListings() {
     }, 1000);
   } catch (err: any) {
     grid.innerHTML = `<div class="text-red-300">Failed to load listings: ${err?.message ?? "Unknown error"}</div>`;
+  }
+}
+
+async function loadHeroHighlight() {
+  const hero = document.querySelector(".hero-section");
+  if (!hero) return;
+  // Show a lightweight loading state
+  (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-white/80">Loading highlight…</span></div>`;
+  try {
+    // Fetch a larger sample of ongoing listings; API doesn't sort by bids natively
+    const { data } = await fetchListings({ _active: true, sort: "endsAt", sortOrder: "asc", limit: 50 });
+    if (!data || data.length === 0) {
+      (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-white/80">No active auctions</span></div>`;
+      return;
+    }
+    // Pick the item with the most bids
+    const top = data.reduce((best, item) => {
+      const bids = item._count?.bids ?? 0;
+      const bestBids = best?._count?.bids ?? -1;
+      return bids > bestBids ? item : best;
+    }, data[0]);
+
+    const cover = top.media?.[0]?.url ?? "";
+    const title = top.title ?? "Untitled";
+    const descRaw = (top.description ?? "").trim();
+    const short = descRaw.length > 100 ? `${descRaw.slice(0, 97)}…` : descRaw;
+    const description = escapeHtml(short);
+    const bidsCount = top._count?.bids ?? 0;
+    const endsText = formatTimeLeft(top.endsAt);
+
+    const el = createHTML(`
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="grid gap-6 md:grid-cols-2 items-center">
+          <div>
+            <h2 class="text-2xl sm:text-3xl font-bold mb-3 border-b border-gray-200">Highest Bidder</h2>
+            <h3 class="text-xl font-semibold mb-2">${title}</h3>
+            ${description ? `<p class="text-white/80 mb-3">${description}</p>` : ""}
+            <div class="flex items-center gap-3 mb-10">
+              <span class="inline-flex items-center rounded-md bg-green-600 px-2 py-0.5 text-white">Ends in ${endsText}</span>
+              <span class="inline-flex items-center rounded-md bg-white/10 px-2 py-0.5">Bids: ${bidsCount}</span>
+            </div>
+            <a href="/listings/${top.id}" data-link class="inline-block rounded-md border border-gray-200 text-gray-200 px-4 py-2 text-xl font-medium hover:bg-white hover:text-black">View Listing</a>
+          </div>
+          <div class="rounded-lg overflow-hidden border border-white/10 bg-white/5">
+            ${cover ? `<img src="${cover}" alt="${top.media?.[0]?.alt ?? title}" class="w-full h-94 object-cover">` : `<div class="h-64 flex items-center justify-center text-white/60">No image</div>`}
+          </div>
+        </div>
+      </div>
+    `);
+    if (el) (hero as HTMLElement).replaceChildren(el);
+  } catch (err: any) {
+    (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-red-300">Failed to load highlight: ${err?.message ?? "Unknown error"}</span></div>`;
   }
 }
