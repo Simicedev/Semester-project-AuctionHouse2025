@@ -255,17 +255,29 @@ function renderHome() {
         <div id="home-listings" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
       </div>
       
-      <div class="mx-auto max-w-7xl px-6 py-8 main-color text-white rounded-lg shadow-lg mb-10">
+      <div class="mx-auto max-w-7xl px-6 py-8 main-color text-white rounded-lg shadow-lg mb-10 text-center">
+      <div class="flex flex-col items-center mb-6">
         <p class="text-3xl mb-4">Online evaluation</p>
-        <p class="text-md ">
+        <p class="flex flex-col text-xl w-3/4 ">
             Send in your items you’d like to auction away!
             One of our professional and certified “item handlers” will
             confirm your price for you by doing extensive research
             on your item!
             Maybe you’ve got a hidden gem?
 
-            Press read more to learn more about our online evaluation programme!
           </p>
+          <p class="text-xl mt-6"> Press read more to learn more about our online evaluation programme!</p>
+      </div>
+          <a href="#" data-link class="inline-block rounded-md border border-gray-200 text-gray-200 mt-6 px-4 py-2 text-xl font-medium hover:bg-white hover:text-black">Read More</a>
+      </div>
+
+      <div class="mx-auto px-6 py-8 text-main-color mb-10 text-2xl text-center">
+      <p>
+          Sign up at Auction House’s
+          newsletter - get updates about
+          the hottest auctions!
+      </p>
+      <a href="#" data-link class="inline-block rounded-md border bg-white border-gray-200 text-main-color mt-6 px-4 py-2 text-xl font-medium hover:bg-amber-50 hover:text-black">Sign up</a>
       </div>
     </section>
 
@@ -391,11 +403,11 @@ async function loadHeroHighlight() {
       <div class="mx-auto max-w-7xl px-6">
         <div class="grid gap-6 md:grid-cols-2 items-center">
           <div>
-            <h2 class="text-2xl sm:text-3xl font-bold mb-3 border-b border-gray-200">Highest Bidder</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold mb-3">Highest Bidder</h2>
             <h3 class="text-xl font-semibold mb-2">${title}</h3>
             ${description ? `<p class="text-white/80 mb-3">${description}</p>` : ""}
             <div class="flex items-center gap-3 mb-10">
-              <span class="inline-flex items-center rounded-md bg-green-600 px-2 py-0.5 text-white">Ends in ${endsText}</span>
+              <span class="inline-flex items-center rounded-md bg-green-600 px-2 py-0.5 text-white time-left" data-ends-at="${top.endsAt}">Ends in ${endsText}</span>
               <span class="inline-flex items-center rounded-md bg-white/10 px-2 py-0.5">Bids: ${bidsCount}</span>
             </div>
             <a href="/listings/${top.id}" data-link class="inline-block rounded-md border border-gray-200 text-gray-200 px-4 py-2 text-xl font-medium hover:bg-white hover:text-black">View Listing</a>
