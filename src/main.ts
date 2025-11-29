@@ -5,6 +5,7 @@ import { renderRegister } from "./pages/register";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
 import { createHTML } from "./services/utils";
+import { fetchCredits } from "./services/auctionHouseAPI";
 import { fetchListings } from "./services/listingsAPI";
 let countdownInterval: number | null = null;
 
@@ -121,7 +122,7 @@ function renderNav() {
             </div>
           </div>
           <div class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-          <div class="rounded-md px-3 py-2 text-sm font-medium text-white">Credits</div>
+          <div class="rounded-md px-3 py-2 text-sm font-medium bg-blue-900 text-white" data-credits>Credits: …</div>
             <button type="button" class="relative rounded-full p-1 text-gray-400 hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500">
               <span class="absolute -inset-1.5"></span>
               <span class="sr-only">View notifications</span>
@@ -153,9 +154,7 @@ function renderNav() {
         <div class="space-y-1 px-2 pt-2 pb-3">
           <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
           <a href="/" aria-current="page" class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Home</a>
-          <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-white/5 hover:text-white">My collection</a>
           <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
-          <div class="block rounded-md px-3 py-2 text-base font-medium text-white">Credits</div>
         </div>
       </el-disclosure>
 </nav>
@@ -179,6 +178,14 @@ function renderNav() {
       // After logout, route to home
       history.pushState({ path: "/" }, "", "/");
       window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+  }
+
+  // Populate credits for authenticated users
+  if (authenticated && name) {
+    updateCreditsInNav(name).catch(() => {
+      const creditsEl = nav.querySelector("[data-credits]") as HTMLElement | null;
+      if (creditsEl) creditsEl.textContent = "Credits: -";
     });
   }
 }
@@ -215,6 +222,14 @@ window.addEventListener("auth:changed", () => {
   renderNav();
 });
 
+// Refresh credits badge when app dispatches a credits:refresh event
+window.addEventListener("credits:refresh", () => {
+  if (isAuthenticated()) {
+    const name = getUserName();
+    if (name) updateCreditsInNav(name);
+  }
+});
+
 // Re-fetch listings when crossing the mobile/desktop breakpoint
 const reloadListing = window.matchMedia("(max-width: 639px)");
 const onBreakpointChange = () => {
@@ -234,6 +249,11 @@ function renderHome() {
   ensureFooter();
   const outlet = document.getElementById("app-content");
   if (!outlet) return;
+  const authenticated = isAuthenticated();
+  const primaryCtaLabel = authenticated ? "Browse All Listings" : "Login";
+  const secondaryCtaLabel = authenticated ? "How It Works" : "Register";
+  const primaryCtaHref = authenticated ? "/" : "/login"; // TODO: point to listings route when implemented
+  const secondaryCtaHref = authenticated ? "#how-it-works" : "/register";
   const el = createHTML(`
     <section>
         <div class="flex flex-col items-center p-8 gap-4 bg-white rounded-lg shadow">
@@ -243,8 +263,8 @@ function renderHome() {
           </p>
           <p class="text-center text-gray-600 max-w-prose">Discover unique items and bid live. Join the excitement and win your next treasure.</p>
           <div class="flex flex-row gap-3">
-            <a href="#" class="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">Browse All Listings</a>
-            <a href="#" class="inline-flex items-center rounded-md border border-gray-300 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-100">How It Works</a>
+            <a href="${primaryCtaHref}" data-link class="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">${primaryCtaLabel}</a>
+            <a href="${secondaryCtaHref}" data-link class="inline-flex items-center rounded-md border border-gray-300 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-100">${secondaryCtaLabel}</a>
           </div>
         </div>
       <div class="hero-section main-color text-white py-10 mb-6">
@@ -421,5 +441,17 @@ async function loadHeroHighlight() {
     if (el) (hero as HTMLElement).replaceChildren(el);
   } catch (err: any) {
     (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-red-300">Failed to load highlight: ${err?.message ?? "Unknown error"}</span></div>`;
+  }
+}
+
+async function updateCreditsInNav(profileName: string) {
+  try {
+    const envelope = await fetchCredits(profileName);
+    const credits = envelope?.data?.credits;
+    const el = document.querySelector("#site-nav [data-credits]") as HTMLElement | null;
+    if (el) el.textContent = credits !== undefined ? `Credits: ${credits}` : "Credits: -";
+  } catch {
+    const el = document.querySelector("#site-nav [data-credits]") as HTMLElement | null;
+    if (el) el.textContent = "Credits: -";
   }
 }

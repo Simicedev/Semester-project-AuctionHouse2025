@@ -7,7 +7,6 @@ export interface Media {
 }
 
 // Listing summary used in profile-related endpoints
-// Public profile subset (without credits and listing/win counts)
 export interface ProfilePublic {
     name: string;
     email: string;
@@ -43,7 +42,6 @@ export interface Listing {
     bids?: ListingBid[]; // included when _bids=true
 }
 
-// Base profile shape (without optional expanded arrays)
 export interface ProfileBase {
     name: string;
     email: string;
@@ -185,3 +183,6 @@ export function searchProfiles(q: string, query: SearchProfilesQuery = {}): Prom
 }
 
 
+export function fetchCredits(name: string): Promise<DataEnvelope<{ credits: number }>> {
+    return get<DataEnvelope<{ credits: number }>>(`/auction/profiles/${encodeURIComponent(name)}/credits`);
+}
