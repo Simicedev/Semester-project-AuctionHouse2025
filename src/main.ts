@@ -365,7 +365,9 @@ async function loadHomeListings() {
       const bidsCount = item._count?.bids ?? 0;
       const card = createHTML(`
         <article class="flex flex-col text-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
-          ${cover ? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover">` : ""}
+          ${cover
+            ? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover" />`
+            : `<div class="w-full h-40 flex items-center justify-center bg-gray-100 text-gray-500 text-sm font-medium select-none" aria-label="No image available">No Image</div>`}
           <div class="p-4 relative h-64 flex flex-col overflow-hidden">
             <h3 class="text-xl font-semibold mb-2 text-black line-clamp-2">${title}</h3>
             ${description ? `<p class="text-base text-gray-600 mb-2 leading-snug line-clamp-3">${description}</p>` : ""}
