@@ -205,6 +205,9 @@ function renderNotFound() {
 
 // Initialize router
 ensureAppShell();
+// Ensure persistent shell elements for all routes
+renderNav();
+ensureFooter();
 const routes: Route[] = [
   { path: "/", view: renderHome },
   { path: "/login", view: renderLogin },
