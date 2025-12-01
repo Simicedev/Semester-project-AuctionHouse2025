@@ -2,6 +2,7 @@ import "@tailwindplus/elements";
 import "./style.css";
 import { renderLogin } from "./pages/login";
 import { renderRegister } from "./pages/register";
+import { renderAllListings } from "./pages/allListings";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
 import { createHTML } from "./services/utils";
@@ -115,7 +116,7 @@ function renderNav() {
               <div class="flex space-x-4">
                 <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
                 <a href="/" aria-current="page" class="rounded-md px-3 py-2 text-sm font-medium text-white">Home</a>
-                <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-white/5 ">Browse all listings</a>
+                <a href="/listings" data-link class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-white/5">Browse all listings</a>
                 <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-green-700  bg-green-600">+ Create Listing</a>
                 
               </div>
@@ -154,7 +155,7 @@ function renderNav() {
         <div class="space-y-1 px-2 pt-2 pb-3">
           <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
           <a href="/" aria-current="page" class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Home</a>
-          <a href="/" aria-current="page" class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Browse all listings</a>
+          <a href="/listings" data-link class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Browse all listings</a>
           <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
         </div>
       </el-disclosure>
@@ -213,6 +214,7 @@ const routes: Route[] = [
   { path: "/", view: renderHome },
   { path: "/login", view: renderLogin },
   { path: "/register", view: renderRegister },
+  { path: "/listings", view: renderAllListings },
 ];
 
 const outletEl = document.getElementById("app-content") as HTMLElement | null;
@@ -256,7 +258,7 @@ function renderHome() {
   const authenticated = isAuthenticated();
   const primaryCtaLabel = authenticated ? "Browse All Listings" : "Login";
   const secondaryCtaLabel = authenticated ? "How It Works" : "Register";
-  const primaryCtaHref = authenticated ? "/" : "/login"; // TODO: point to listings route when implemented
+   const primaryCtaHref = authenticated ? "/listings" : "/login"; // TODO: point to listings route when implemented
   const secondaryCtaHref = authenticated ? "#how-it-works" : "/register";
   const el = createHTML(`
     <section>
