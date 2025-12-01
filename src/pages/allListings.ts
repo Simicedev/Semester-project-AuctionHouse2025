@@ -133,30 +133,54 @@ export async function renderAllListings() {
 		}, 1000);
 	}
 
+	// If user selects "Most Bids", default to Desc order
+	sortSelect?.addEventListener("change", () => {
+		if (sortSelect.value === "_count.bids" && orderSelect) {
+			orderSelect.value = "desc";
+		}
+	});
+
 	async function loadPage(append = false) {
 		if (loading) return;
 		loading = true;
 		if (!grid) return;
 		if (!append) grid.innerHTML = `<div class="text-gray-600">Loading…</div>`;
 		try {
-			const base = {
-				sort: sortSelect?.value || "endsAt",
+			const selectedSort = sortSelect?.value || "endsAt";
+			const clientSortByBids = selectedSort === "_count.bids";
+			const base: Record<string, any> = {
+				sort: clientSortByBids ? "created" : selectedSort,
 				sortOrder: (orderSelect?.value as "asc" | "desc") || "asc",
 				_active: activeOnly?.checked ?? true,
 				page,
 				limit,
 			};
+			
+			if (clientSortByBids) {
+				base._bids = true;
+			}
 			let envelope: PagedEnvelope<any>;
 			if (lastQueryMode === "search" && lastSearchQ.trim()) {
-				envelope = await searchListings(lastSearchQ.trim(), base as any) as PagedEnvelope<any>;
+				const searchQuery = { ...base };
+				delete (searchQuery as any)._active; // not supported on search
+				envelope = await searchListings(lastSearchQ.trim(), searchQuery as any) as PagedEnvelope<any>;
 			} else {
 				const listQuery = { ...base, _tag: tagInput?.value?.trim() || undefined } as any;
 				envelope = await fetchListings(listQuery) as PagedEnvelope<any>;
 			}
 			const { data, meta } = envelope;
+			
+			const items = clientSortByBids
+				? [...data].sort((a: any, b: any) => {
+					const av = (a?._count?.bids ?? 0) as number;
+					const bv = (b?._count?.bids ?? 0) as number;
+					const cmp = av - bv;
+					return (orderSelect?.value || "desc") === "asc" ? cmp : -cmp;
+				})
+				: data;
 			const frag = document.createDocumentFragment();
 
-			data.forEach((item: any) => {
+			items.forEach((item: any) => {
 				const cover = item.media?.[0]?.url ?? "";
 				const title = item.title ?? "Untitled";
 				const descRaw = (item.description ?? "").trim();
