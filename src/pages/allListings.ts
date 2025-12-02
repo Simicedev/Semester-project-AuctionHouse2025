@@ -59,8 +59,8 @@ export async function renderAllListings() {
 					<div class="flex-1">
 						<label for="sortOrder" class="block text-sm font-medium text-gray-700">Order</label>
 						<select id="sortOrder" name="sortOrder" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2">
-							<option value="asc">Asc</option>
-							<option value="desc">Desc</option>
+							<option value="asc">Top-Bottom</option>
+							<option value="desc">Bottom-Top</option>
 						</select>
 					</div>
 					<div class="flex items-center gap-2 mt-6">
@@ -73,9 +73,7 @@ export async function renderAllListings() {
 
 			<div id="listings-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
 
-			<div class="mt-6 flex justify-center">
-				<button id="load-more" class="rounded-md border border-gray-300 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-100">Load More</button>
-			</div>
+			
 		</section>
 	`);
 
@@ -88,7 +86,7 @@ export async function renderAllListings() {
 	const sortSelect = document.getElementById("sort") as HTMLSelectElement | null;
 	const orderSelect = document.getElementById("sortOrder") as HTMLSelectElement | null;
 	const activeOnly = document.getElementById("active-only") as HTMLInputElement | null;
-	const loadMoreBtn = document.getElementById("load-more") as HTMLButtonElement | null;
+	
 	// New pagination controls (Prev/Next + info)
 	const pager = createHTML(`
 		<div class="mt-4 flex items-center justify-center gap-3">
@@ -155,10 +153,8 @@ export async function renderAllListings() {
 				page,
 				limit,
 			};
-			
-			if (clientSortByBids) {
-				base._bids = true;
-			}
+			// Always include bids so we can compute current price from highest bid
+			base._bids = true;
 			let envelope: PagedEnvelope<any>;
 			if (lastQueryMode === "search" && lastSearchQ.trim()) {
 				const searchQuery = { ...base };
@@ -188,6 +184,7 @@ export async function renderAllListings() {
 				const description = escapeHtml(short);
 				const timeLeft = formatTimeLeft(item.endsAt);
 				const bidsCount = item._count?.bids ?? 0;
+				const currentPrice = bidsCount > 0 ? Math.max(...((item.bids ?? []).map((b: any) => b.amount) ?? [0])) : 0;
 
 				const card = createHTML(`
 					<article class="flex flex-col text-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
@@ -201,6 +198,7 @@ export async function renderAllListings() {
 								<span class="rounded-md bg-green-600 px-3 py-1 text-white time-left" data-ends-at="${item.endsAt}">Ends in ${timeLeft}</span>
 							</div>
 							<p class="mt-2 text-base text-gray-700">Bids: ${bidsCount}</p>
+							<p class="text-base font-semibold text-black">Current Price: ${currentPrice} credits</p>
 							<a href="/listings/${item.id}" data-link class="mt-auto inline-block w-fit self-center rounded-md bg-blue-600 text-white px-5 py-3 text-lg font-semibold shadow-sm hover:bg-blue-700 transition">View and Bid</a>
 						</div>
 					</article>
@@ -221,10 +219,7 @@ export async function renderAllListings() {
 				nextBtn.disabled = meta.isLastPage;
 				nextBtn.classList.toggle("opacity-50", meta.isLastPage);
 			}
-			if (loadMoreBtn) {
-				// Hide the old Load More when using explicit pagination
-				loadMoreBtn.style.display = "none";
-			}
+			
 		} finally {
 			loading = false;
 			// Ensure countdown updater is running after render

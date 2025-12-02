@@ -3,6 +3,7 @@ import "./style.css";
 import { renderLogin } from "./pages/login";
 import { renderRegister } from "./pages/register";
 import { renderAllListings } from "./pages/allListings";
+import { renderSpecificListing } from "./pages/specificListing";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
 import { createHTML } from "./services/utils";
@@ -215,6 +216,7 @@ const routes: Route[] = [
   { path: "/login", view: renderLogin },
   { path: "/register", view: renderRegister },
   { path: "/listings", view: renderAllListings },
+  { path: "/listings/:id", view: renderSpecificListing },
 ];
 
 const outletEl = document.getElementById("app-content") as HTMLElement | null;
@@ -351,7 +353,7 @@ async function loadHomeListings() {
     const widthMobile = (window.innerWidth || document.documentElement.clientWidth) < 640;
     const isMobile = matchesSmBreakpoint || widthMobile; // Treat as mobile if either check says so
     const limit = isMobile ? 3 : 6;
-    const { data } = await fetchListings({ _active: true, sort: "endsAt", sortOrder: "asc", limit });
+    const { data } = await fetchListings({ _active: true, _bids: true, sort: "endsAt", sortOrder: "asc", limit });
     if (!data || data.length === 0) {
       grid.innerHTML = `<div class="text-white/80">No listings found.</div>`;
       return;
@@ -365,6 +367,7 @@ async function loadHomeListings() {
       const description = escapeHtml(descShortRaw);
       const timeLeft = formatTimeLeft(item.endsAt);
       const bidsCount = item._count?.bids ?? 0;
+      const currentPrice = bidsCount > 0 ? Math.max(...(item.bids?.map((b: any) => b.amount) ?? [0])) : 0;
       const card = createHTML(`
         <article class="flex flex-col text-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
           ${cover
@@ -376,7 +379,9 @@ async function loadHomeListings() {
             <div class="flex items-center justify-center gap-2 text-base w-full">
               <span class="rounded-md bg-green-600 px-3 py-1 text-white time-left" data-ends-at="${item.endsAt}">Ends in ${timeLeft}</span>
             </div>
-            <p class="mt-2 text-base text-gray-700"> Active Bids: ${bidsCount}</p>
+            <p class="mt-2 text-base text-gray-700">Active Bids: ${bidsCount}</p>
+            <p class="text-base font-semibold text-black">Current Price: ${currentPrice} credits</p>
+            
             <a href="/listings/${item.id}" data-link class="mt-auto inline-block rounded-md bg-blue-600 text-white px-5 py-3 text-xl font-semibold shadow-sm hover:bg-blue-700 transition">View and Bid</a>
           </div>
         </article>
@@ -406,8 +411,8 @@ async function loadHeroHighlight() {
   // Show a lightweight loading state
   (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-white/80">Loading highlight…</span></div>`;
   try {
-    // Fetch a larger sample of ongoing listings; API doesn't sort by bids natively
-    const { data } = await fetchListings({ _active: true, sort: "endsAt", sortOrder: "asc", limit: 50 });
+    // Fetch a larger sample of ongoing listings and include bids for current price
+    const { data } = await fetchListings({ _active: true, _bids: true, sort: "endsAt", sortOrder: "asc", limit: 50 });
     if (!data || data.length === 0) {
       (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-white/80">No active auctions</span></div>`;
       return;
@@ -425,6 +430,7 @@ async function loadHeroHighlight() {
     const short = descRaw.length > 100 ? `${descRaw.slice(0, 97)}…` : descRaw;
     const description = escapeHtml(short);
     const bidsCount = top._count?.bids ?? 0;
+    const currentPrice = bidsCount > 0 ? Math.max(...(top.bids?.map(b => b.amount) ?? [0])) : 0;
     const endsText = formatTimeLeft(top.endsAt);
 
     const el = createHTML(`
@@ -434,9 +440,10 @@ async function loadHeroHighlight() {
             <h2 class="text-2xl sm:text-3xl font-bold mb-3">Highest Bidder</h2>
             <h3 class="text-xl font-semibold mb-2">${title}</h3>
             ${description ? `<p class="text-white/80 mb-3">${description}</p>` : ""}
-            <div class="flex items-center gap-3 mb-10">
+            <div class="flex flex-wrap items-center gap-3 mb-10">
               <span class="inline-flex items-center rounded-md bg-green-600 px-2 py-0.5 text-white time-left" data-ends-at="${top.endsAt}">Ends in ${endsText}</span>
               <span class="inline-flex items-center rounded-md bg-white/10 px-2 py-0.5">Bids: ${bidsCount}</span>
+              <span class="inline-flex items-center rounded-md bg-white/10 px-2 py-0.5">Current Price: ${currentPrice} credits</span>
             </div>
             <a href="/listings/${top.id}" data-link class="inline-block rounded-md border border-gray-200 text-gray-200 px-4 py-2 text-xl font-medium hover:bg-white hover:text-black">View Listing</a>
           </div>

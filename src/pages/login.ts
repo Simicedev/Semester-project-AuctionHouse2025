@@ -67,7 +67,6 @@ export function renderLogin() {
       );
       emitAuthChanged();
       if (msg) msg.textContent = `Logged in as ${response.data.name}`;
-      // optional: redirect to home
       history.pushState({ path: "/" }, "", "/");
       window.dispatchEvent(new PopStateEvent("popstate"));
     } catch (err: any) {

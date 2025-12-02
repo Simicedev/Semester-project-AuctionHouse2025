@@ -42,7 +42,6 @@ export function setAuth(state: AuthState) {
   if (state.name) localStorage.setItem(NAME_KEY, state.name);
   if (state.email) localStorage.setItem(EMAIL_KEY, state.email);
   emitAuthChanged();
-  // After setting auth, attempt to refresh avatar asynchronously
   refreshAvatarFromProfile().catch(() => {});
 }
 
@@ -53,7 +52,6 @@ export function clearAuth() {
   localStorage.removeItem(AVATAR_KEY);
   emitAuthChanged();
 }
-
 export function emitAuthChanged() {
   window.dispatchEvent(new CustomEvent("auth:changed"));
 }
@@ -82,11 +80,10 @@ export async function registerAccount(params: {
 export async function loginAccount(params: { email: string; password: string }) {
   try {
     const res = await post("/auth/login", params);
-    // Expected shape: { data: { name, email, ... }, meta: { accessToken } } or sometimes { accessToken, data }
     const accessToken =
       res.accessToken ||
       res.meta?.accessToken ||
-      res.data?.accessToken; // defensive
+      res.data?.accessToken;
     const profile = res.data || {};
     if (!accessToken) {
       throw new Error("Login response missing accessToken");
@@ -126,7 +123,7 @@ export function debugAuth() {
   });
 }
 
-// ...existing code...
+
 
 
 const form = document.querySelector("#loginForm") as HTMLFormElement | null;
@@ -142,9 +139,8 @@ form?.addEventListener("submit", async (e) => {
     alert("Login failed. Check console.");
   }
 });
-// ...existing code...
 
-// Helper: request current profile and store avatar url
+
 export async function refreshAvatarFromProfile() {
   const name = getUserName();
   if (!name || !isAuthenticated()) return;

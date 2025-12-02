@@ -81,7 +81,6 @@ export function renderRegister() {
     try {
       const response = await registerUser(body);
       console.log("Register response:", response);
-      // Some APIs don't return accessToken on register; perform auto-login to get token
       const loginRes = await loginUser({
         email: body.email,
         password: body.password,
