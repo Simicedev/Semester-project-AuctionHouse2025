@@ -55,13 +55,13 @@ export async function renderSpecificListing(params?: { id?: string }) {
           <div class="rounded-lg overflow-hidden border border-gray-200 bg-white">
             <div class="relative w-full aspect-4/3  bg-gray-100 overflow-hidden">
               ${cover 
-                ? `<img src="${cover}" alt="${listing.media?.[0]?.alt ?? title}" class="absolute inset-0 w-full h-full object-cover" />`
+                ? `<img src="${cover}" alt="${listing.media?.[0]?.alt ?? title}" class="absolute inset-0 w-full h-full object-cover" width="1200" height="675" fetchpriority="high" />`
                 : `<div class="absolute inset-0 flex items-center justify-center text-gray-500">No Image</div>`}
             </div>
           </div>
           ${listing.media && listing.media.length > 1 ? `
             <div class="grid grid-cols-4 gap-2 mt-2">
-              ${listing.media.slice(1, 5).map(m => `<div class="relative w-full aspect-square overflow-hidden rounded border border-gray-200 bg-white"><img src="${m.url}" alt="${m.alt ?? title}" class="absolute inset-0 w-full h-full object-cover"></div>`).join("")}
+              ${listing.media.slice(1, 5).map(m => `<div class="relative w-full aspect-square overflow-hidden rounded border border-gray-200 bg-white"><img src="${m.url}" alt="${m.alt ?? title}" class="absolute inset-0 w-full h-full object-cover" width="300" height="300" loading="lazy"></div>`).join("")}
             </div>
           ` : ``}
           <div class="flex flex-col gap-4">

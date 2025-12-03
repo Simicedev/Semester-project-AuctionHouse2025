@@ -189,7 +189,7 @@ export async function renderAllListings() {
 				const card = createHTML(`
 					<article class="flex flex-col text-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
 						${cover
-							? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover">`
+							? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover" width="600" height="160" loading="lazy">`
 							: `<div class="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-600" aria-label="No image">No Image</div>`}
 						<div class="p-4 relative h-64 flex flex-col overflow-hidden">
 							<h3 class="text-xl font-semibold mb-2 text-black line-clamp-2">${title}</h3>
