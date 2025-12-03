@@ -1,14 +1,11 @@
 import "@tailwindplus/elements";
 import "./style.css";
-import { renderLogin } from "./pages/login";
-import { renderRegister } from "./pages/register";
-import { renderAllListings } from "./pages/allListings";
-import { renderSpecificListing } from "./pages/specificListing";
 import { isAuthenticated, getUserName, clearAuth, getProfilePicture } from "./storage/authentication";
 import { Router, type Route } from "./router/router";
 import { createHTML } from "./services/utils";
 import { fetchCredits } from "./services/auctionHouseAPI";
 import { fetchListings } from "./services/listingsAPI";
+
 let countdownInterval: number | null = null;
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
@@ -134,8 +131,8 @@ function renderNav() {
             </button>
 
             <!-- Profile dropdown -->
-            <el-dropdown class="relative ml-3">
-              <button class="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+            <el-dropdown class="relative ml-3 ">
+              <button class="relative flex rounded-full hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
                 <span class="absolute -inset-1.5"></span>
                 <span class="sr-only">Open user menu</span>
                 <img src="${getProfilePicture()}" alt="profile picture" class="size-8 rounded-full bg-gray-800 outline -outline-offset-1 outline-white/10" /> 
@@ -143,7 +140,7 @@ function renderNav() {
 
               <el-menu anchor="bottom end" popover class="w-48 origin-top-right rounded-md bg-gray-800 py-1 outline -outline-offset-1 outline-white/10 transition transition-discrete [--anchor-gap:--spacing(2)] data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
                 <div class="block px-4 py-2 text-sm text-gray-300">Logged in: ${name}</div>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden">Your profile</a>
+                <a href="/my-profile" class="block px-4 py-2 text-sm text-gray-300  focus:bg-white/5 focus:outline-hidden">Your profile</a>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden">Settings</a>
                 <a href="#" data-logout class="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden">Sign out</a>
               </el-menu>
@@ -213,10 +210,12 @@ renderNav();
 ensureFooter();
 const routes: Route[] = [
   { path: "/", view: renderHome },
-  { path: "/login", view: renderLogin },
-  { path: "/register", view: renderRegister },
-  { path: "/listings", view: renderAllListings },
-  { path: "/listings/:id", view: renderSpecificListing },
+  { path: "/login", view: async () => (await import("./pages/login")).renderLogin() },
+  { path: "/register", view: async () => (await import("./pages/register")).renderRegister() },
+  { path: "/listings", view: async () => (await import("./pages/allListings")).renderAllListings() },
+  { path: "/listings/:id", view: async (params) => (await import("./pages/specificListing")).renderSpecificListing(params) },
+  { path: "/my-profile", view: async () => (await import("./pages/myProfile")).renderMyProfile() },
+  
 ];
 
 const outletEl = document.getElementById("app-content") as HTMLElement | null;
@@ -371,7 +370,7 @@ async function loadHomeListings() {
       const card = createHTML(`
         <article class="flex flex-col text-center rounded-lg overflow-hidden border border-white/10 bg-white backdrop-blur shadow-md">
           ${cover
-            ? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover" />`
+              ? `<img src="${cover}" alt="${item.media?.[0]?.alt ?? title}" class="w-full h-40 object-cover" width="600" height="160" loading="lazy" />`
             : `<div class="w-full h-40 flex items-center justify-center bg-gray-100 text-gray-500 text-sm font-medium select-none" aria-label="No image available">No Image</div>`}
           <div class="p-4 relative h-64 flex flex-col overflow-hidden">
             <h3 class="text-xl font-semibold mb-2 text-black line-clamp-2">${title}</h3>
@@ -448,7 +447,7 @@ async function loadHeroHighlight() {
             <a href="/listings/${top.id}" data-link class="inline-block rounded-md border border-gray-200 text-gray-200 px-4 py-2 text-xl font-medium hover:bg-white hover:text-black">View Listing</a>
           </div>
           <div class="rounded-lg overflow-hidden border border-white/10 bg-white/5">
-            ${cover ? `<img src="${cover}" alt="${top.media?.[0]?.alt ?? title}" class="w-full h-94 object-cover">` : `<div class="h-64 flex items-center justify-center text-white/60">No image</div>`}
+              ${cover ? `<img src="${cover}" alt="${top.media?.[0]?.alt ?? title}" class="w-full h-94 object-cover" width="1200" height="376" fetchpriority="high">` : `<div class="h-64 flex items-center justify-center text-white/60">No image</div>`}
           </div>
         </div>
       </div>
