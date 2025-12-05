@@ -115,7 +115,7 @@ function renderNav() {
                 <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
                 <a href="/" aria-current="page" class="rounded-md px-3 py-2 text-sm font-medium text-white">Home</a>
                 <a href="/listings" data-link class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-white/5">Browse all listings</a>
-                <a href="#" class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-green-700  bg-green-600">+ Create Listing</a>
+                <a href="/create-listing" data-link class="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-green-700  bg-green-600">+ Create Listing</a>
                 
               </div>
             </div>
@@ -154,7 +154,7 @@ function renderNav() {
           <!-- Current: "bg-gray-950/50 text-white", Default: "text-gray-300 hover:bg-white/5 hover:text-white" -->
           <a href="/" aria-current="page" class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Home</a>
           <a href="/listings" data-link class="block rounded-md  px-3 py-2 text-base font-medium text-white hover:bg-white/5">Browse all listings</a>
-          <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
+          <a href="/create-listing" data-link class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
         </div>
       </el-disclosure>
 </nav>
@@ -215,7 +215,7 @@ const routes: Route[] = [
   { path: "/listings", view: async () => (await import("./pages/allListings")).renderAllListings() },
   { path: "/listings/:id", view: async (params) => (await import("./pages/specificListing")).renderSpecificListing(params) },
   { path: "/my-profile", view: async () => (await import("./pages/myProfile")).renderMyProfile() },
-  
+  { path: "/create-listing", view: async () => (await import("./pages/createListing")).renderCreateListing() },
 ];
 
 const outletEl = document.getElementById("app-content") as HTMLElement | null;
@@ -416,10 +416,11 @@ async function loadHeroHighlight() {
       (hero as HTMLElement).innerHTML = `<div class="mx-auto max-w-7xl px-6"><span class="text-white/80">No active auctions</span></div>`;
       return;
     }
-    // Pick the item with the most bids
+    // Pick the item with the most bids (robust to API variations)
+    const getBidCount = (it: any) => Array.isArray(it?.bids) ? it.bids.length : (it?._count?.bids ?? 0);
     const top = data.reduce((best, item) => {
-      const bids = item._count?.bids ?? 0;
-      const bestBids = best?._count?.bids ?? -1;
+      const bids = getBidCount(item);
+      const bestBids = getBidCount(best);
       return bids > bestBids ? item : best;
     }, data[0]);
 

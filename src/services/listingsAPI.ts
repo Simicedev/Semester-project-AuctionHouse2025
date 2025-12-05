@@ -23,7 +23,7 @@ export interface SingleListingQuery {
   _bids?: boolean;
 }
 
-export function fetchListing(id: string, query: SingleListingQuery = {}): Promise<DataEnvelope<Listing>> {
+export function fetchSingleListing(id: string, query: SingleListingQuery = {}): Promise<DataEnvelope<Listing>> {
   const qs = buildQuery(query);
   return get<DataEnvelope<Listing>>(`/auction/listings/${encodeURIComponent(id)}${qs}`);
 }

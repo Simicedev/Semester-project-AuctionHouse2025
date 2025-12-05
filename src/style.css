@@ -1,3 +1,13 @@
+/* Existing styles */
+
+/* Ensure datetime-local picker shows dark (black) icon */
+.dt-input {
+  color-scheme: light;
+}
+.dt-input::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  filter: none;
+}
 @import "tailwindcss";
 
 :root {

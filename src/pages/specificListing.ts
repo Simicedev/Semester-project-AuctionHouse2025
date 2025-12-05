@@ -1,5 +1,5 @@
 import { createHTML } from "../services/utils";
-import { fetchListing, bidOnListing } from "../services/listingsAPI";
+import { fetchSingleListing, bidOnListing } from "../services/listingsAPI";
 import { isAuthenticated } from "../storage/authentication";
 
 function escapeHtml(str: string): string {
@@ -39,7 +39,7 @@ export async function renderSpecificListing(params?: { id?: string }) {
   outlet.replaceChildren(createHTML(`<section class="p-6"><div class="text-gray-600">Loading listing…</div></section>`)!);
 
   try {
-    const envelope = await fetchListing(id, { _seller: true, _bids: true });
+    const envelope = await fetchSingleListing(id, { _seller: true, _bids: true });
     const listing = envelope.data;
     const cover = listing.media?.[0]?.url ?? "";
     const title = listing.title ?? "Untitled";
