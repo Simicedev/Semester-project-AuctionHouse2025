@@ -76,7 +76,7 @@ export async function renderMyProfile() {
                 <span class="inline-flex items-center rounded-md bg-gray-100 text-gray-900 px-2 py-1">Listings: ${profile?._count?.listings ?? 0}</span>
                 <span class="inline-flex items-center rounded-md bg-gray-100 text-gray-900 px-2 py-1">Wins: ${profile?._count?.wins ?? 0}</span>
                 <a href="#" class="block rounded-md px-2 py-1 text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Edit Profile</a>
-                <a href="#" class="block rounded-md px-2 py-1 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
+                <a href="/create-listing" class="block rounded-md px-2 py-1 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
               </div>
              
             </div>
@@ -142,4 +142,4 @@ export async function renderMyProfile() {
     if (el) outlet.replaceChildren(el);
   }
 }
-// stray duplicate imports removed
+
