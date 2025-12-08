@@ -84,7 +84,8 @@ export function renderCreateListing() {
         </form>
       </section>
     `);
-    if (el) root.replaceChildren(el);
+    if (!el) return;
+    root.replaceChildren(el);
 
     // refs
     const form = el.querySelector("#create-listing-form") as HTMLFormElement;

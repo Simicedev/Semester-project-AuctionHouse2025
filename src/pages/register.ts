@@ -1,4 +1,5 @@
 import { registerUser, loginUser } from "../services/authApi";
+import { updateProfile } from "../services/auctionHouseAPI";
 import { setAuth, emitAuthChanged } from "../storage/authentication";
 import { createHTML } from "../services/utils";
 
@@ -44,6 +45,9 @@ export function renderRegister() {
             <label class="flex flex-col text-sm font-medium text-gray-700">Banner URL
               <input class="mt-1 border rounded-xl p-2 text-black bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" name="banner" type="url" placeholder="https://..." />
             </label>
+            <label class="flex flex-col text-sm font-medium text-gray-700">Bio (optional)
+              <textarea class="mt-1 border rounded-xl p-2 text-black bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" name="bio" rows="4" placeholder="Tell us about yourself"></textarea>
+            </label>
             <div class="flex items-start gap-2 mb-1">
               <input id="checkbox-2" type="checkbox" required class="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500" />
               <label for="checkbox-2" class="text-sm font-medium text-gray-700">I agree to the <a href="#" class="text-blue-700 hover:underline">terms and conditions</a>.</label>
@@ -77,6 +81,7 @@ export function renderRegister() {
         ? { url: String(formData.get("banner")), alt: "Banner" }
         : undefined,
     };
+    const bio = String(formData.get("bio") || "").trim();
     if (msg) msg.textContent = "Registering…";
     try {
       const response = await registerUser(body);
@@ -95,6 +100,14 @@ export function renderRegister() {
         localStorage.getItem("accessToken")
       );
       emitAuthChanged();
+      // Optionally set bio via profile update after registration
+      if (bio) {
+        try {
+          await updateProfile(loginRes.data.name, { bio });
+        } catch (e) {
+          console.warn("Failed to set bio on registration:", e);
+        }
+      }
       if (msg) msg.textContent = `Registered as ${loginRes.data.name}`;
       history.pushState({ path: "/" }, "", "/");
       window.dispatchEvent(new PopStateEvent("popstate"));
