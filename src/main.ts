@@ -161,7 +161,10 @@ function renderNav() {
     `
     : `
       <div class="flex justify-between p-4 main-color text-white gap-4">
-        <a href="/" data-link class="font-semibold">Home</a>
+        <div class="flex gap-4 items-center">
+          <a href="/" data-link class="font-semibold">Home</a>
+          <a href="/listings" data-link class="rounded-md px-3 py-1 text-sm font-medium text-white hover:bg-white/5">Browse all listings</a>
+        </div>
         <div class="flex gap-4">
           <a href="/login" data-link>Login</a>
           <a href="/register" data-link>Register</a>
@@ -213,8 +216,21 @@ const routes: Route[] = [
   { path: "/login", view: async () => (await import("./pages/login")).renderLogin() },
   { path: "/register", view: async () => (await import("./pages/register")).renderRegister() },
   { path: "/listings", view: async () => (await import("./pages/allListings")).renderAllListings() },
-  { path: "/listings/:id", view: async (params) => (await import("./pages/specificListing")).renderSpecificListing(params) },
+  { path: "/listings/:id", view: async (params) => {
+      try {
+        (await import("./pages/specificListing.ts")).renderSpecificListing(params);
+      } catch (err) {
+        console.error("Failed to load specificListing module", err);
+        const outlet = document.getElementById("app-content");
+        if (outlet) {
+          outlet.replaceChildren(createHTML(`<section class="p-6"><div class="text-red-600">Failed to load listing page module. Try a hard refresh.</div></section>`)!);
+        }
+      }
+    }
+  },
+  { path: "/listings/:id/edit", view: async (params) => (await import("./pages/editListing")).renderEditListing(params) },
   { path: "/my-profile", view: async () => (await import("./pages/myProfile")).renderMyProfile() },
+  { path: "/my-profile/edit", view: async () => (await import("./pages/editProfile")).renderEditProfile() },
   { path: "/create-listing", view: async () => (await import("./pages/createListing")).renderCreateListing() },
 ];
 

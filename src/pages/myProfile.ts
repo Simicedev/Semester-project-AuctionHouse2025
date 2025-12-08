@@ -1,4 +1,5 @@
 import { createHTML } from "../services/utils";
+import { deleteListing } from "../services/listingsAPI";
 import { isAuthenticated, getUserName } from "../storage/authentication";
 import {
   fetchProfile,
@@ -75,7 +76,7 @@ export async function renderMyProfile() {
                 <span class="inline-flex items-center rounded-md bg-gray-100 text-gray-900 px-2 py-1">Credits: ${credits}</span>
                 <span class="inline-flex items-center rounded-md bg-gray-100 text-gray-900 px-2 py-1">Listings: ${profile?._count?.listings ?? 0}</span>
                 <span class="inline-flex items-center rounded-md bg-gray-100 text-gray-900 px-2 py-1">Wins: ${profile?._count?.wins ?? 0}</span>
-                <a href="#" class="block rounded-md px-2 py-1 text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Edit Profile</a>
+                <a href="/my-profile/edit" data-link class="block rounded-md px-2 py-1 text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Edit Profile</a>
                 <a href="/create-listing" class="block rounded-md px-2 py-1 text-base font-medium text-white hover:bg-green-700 hover:text-white bg-green-600">+ Create Listing</a>
               </div>
              
@@ -95,8 +96,8 @@ export async function renderMyProfile() {
                       <h3 class="font-semibold text-black line-clamp-2">${l.title}</h3>
                       <p class="text-gray-700 mt-2 line-clamp-3">${l.description ? l.description:"No description"}</p>
                       <a href="/listings/${l.id}" data-link class="mt-3 inline-block rounded-md bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">View</a>
-                      <a href="/listings/${l.id}" data-link class="mt-3 inline-block rounded-md bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">Edit</a>
-                      <div class="mt-3 inline-block rounded-md bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700 cursor-pointer">Delete</div>
+                      <a href="/listings/${l.id}/edit" data-link class="mt-3 inline-block rounded-md bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">Edit</a>
+                      <button type="button" data-delete-id="${l.id}" class="mt-3 inline-block rounded-md bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700">Delete</button>
                     </div>
                   </article>
                 `).join("")}
@@ -140,6 +141,24 @@ export async function renderMyProfile() {
       </section>
     `);
     if (el) outlet.replaceChildren(el);
+
+    // Wire delete buttons
+    const deleteButtons = outlet.querySelectorAll<HTMLButtonElement>("[data-delete-id]");
+    deleteButtons.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-delete-id");
+        if (!id) return;
+        const ok = confirm("Delete this listing? This action cannot be undone.");
+        if (!ok) return;
+        try {
+          await deleteListing(id);
+          // Refresh profile after deletion
+          await renderMyProfile();
+        } catch (err: any) {
+          alert(err?.message ?? "Failed to delete listing");
+        }
+      });
+    });
   } catch (err: any) {
     const el = createHTML(`<section class="p-6"><div class="text-red-600">Failed to load profile: ${err?.message ?? "Unknown error"}</div></section>`);
     if (el) outlet.replaceChildren(el);
