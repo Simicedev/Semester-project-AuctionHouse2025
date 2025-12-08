@@ -90,10 +90,13 @@ export async function renderMyProfile() {
               <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 ${listings.map((l) => `
                   <article class="rounded-lg overflow-hidden border bg-white">
-                    ${l.media?.[0]?.url ? `<img src="${l.media[0].url}" alt="${l.media[0].alt ?? l.title}" class="w-full h-40 object-cover">` : `<div class="w-full h-40 bg-gray-100"></div>`}
+                    ${l.media?.[0]?.url ? `<img src="${l.media[0].url}" alt="${l.media[0].alt ?? l.title}" class="w-full h-50 object-cover">` : `<div class="w-full h-40 bg-gray-100"></div>`}
                     <div class="p-4">
                       <h3 class="font-semibold text-black line-clamp-2">${l.title}</h3>
+                      <p class="text-gray-700 mt-2 line-clamp-3">${l.description ? l.description:"No description"}</p>
                       <a href="/listings/${l.id}" data-link class="mt-3 inline-block rounded-md bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">View</a>
+                      <a href="/listings/${l.id}" data-link class="mt-3 inline-block rounded-md bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">Edit</a>
+                      <div class="mt-3 inline-block rounded-md bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700 cursor-pointer">Delete</div>
                     </div>
                   </article>
                 `).join("")}
