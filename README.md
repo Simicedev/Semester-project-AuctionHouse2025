@@ -14,10 +14,13 @@ A Vite + TypeScript single-page app for an auction marketplace.
 
 ## Deployment
 
-- Netlify: 
+- Netlify: https://hammerauctions.netlify.app/
 - GitHub Repo: https://github.com/Simicedev/Semester-project-AuctionHouse2025
 - Report/Docs: https://docs.google.com/document/d/16oo7-ckDntl1HmlCpdnCT6DKo_j-M28mC-ufVmr14DM/edit?usp=sharing
 - Kanban: https://github.com/users/Simicedev/projects/14/views/1
+- Gannt chart: https://github.com/users/Simicedev/projects/14/views/4
+- Figma Design board: https://www.figma.com/design/bJjYpGDeY2TGr32OMvGpDv/Semester-proejct-2025?node-id=0-1&t=Z61ZzTTYHHUBPqvO-1
+- Figjam designGuide: https://www.figma.com/board/jQ1lZzdib7Vz9x0bBLzvrc/Semester-project-board?node-id=0-1&t=LPWf1PPX38AXMPw6-1
 
 ## Tech Stack
 
