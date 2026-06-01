@@ -26,9 +26,21 @@ function formatTimeLeft(endsAtIso: string): string {
 	return `${minutes}m ${seconds}s`;
 }
 
+let countdownTimer: number | null = null;
+let liveReloadTimer: number | null = null;
+
 export async function renderAllListings() {
 	const outlet = document.getElementById("app-content");
 	if (!outlet) return;
+
+	if (countdownTimer !== null) {
+		window.clearInterval(countdownTimer);
+		countdownTimer = null;
+	}
+	if (liveReloadTimer !== null) {
+		window.clearTimeout(liveReloadTimer);
+		liveReloadTimer = null;
+	}
 
 	const el = createHTML(`
 		<section class="mx-auto max-w-7xl px-6 py-8">
@@ -57,10 +69,10 @@ export async function renderAllListings() {
 				</div>
 				<div class="flex gap-2">
 					<div class="flex-1">
-						<label for="sortOrder" class="block text-sm font-medium text-gray-700">Order</label>
+						<label for="sortOrder" class="block text-sm font-medium text-gray-700">Direction</label>
 						<select id="sortOrder" name="sortOrder" class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2">
-							<option value="asc">Top-Bottom</option>
-							<option value="desc">Bottom-Top</option>
+							<option value="asc">Ascending</option>
+							<option value="desc">Descending</option>
 						</select>
 					</div>
 					<div class="flex items-center gap-2 mt-6">
@@ -102,10 +114,7 @@ export async function renderAllListings() {
 
 	let page = 1;
 	const limit = 12;
-	let loading = false;
-	let countdownTimer: number | null = null;
-	let lastQueryMode: "search" | "list" = "list";
-	let lastSearchQ: string = "";
+	let requestId = 0;
 
 	function startCountdownUpdater() {
 		if (countdownTimer) return;
@@ -131,23 +140,60 @@ export async function renderAllListings() {
 		}, 1000);
 	}
 
-	// If user selects "Most Bids", default to Desc order
-	sortSelect?.addEventListener("change", () => {
-		if (sortSelect.value === "_count.bids" && orderSelect) {
+	function syncSortControls() {
+		if (!sortSelect || !orderSelect) return;
+		const isBidSort = sortSelect.value === "_count.bids";
+		orderSelect.disabled = isBidSort;
+		orderSelect.classList.toggle("opacity-60", isBidSort);
+		orderSelect.classList.toggle("cursor-not-allowed", isBidSort);
+		if (isBidSort) {
 			orderSelect.value = "desc";
 		}
+	}
+
+	function queueReload() {
+		page = 1;
+		if (liveReloadTimer !== null) {
+			window.clearTimeout(liveReloadTimer);
+		}
+		liveReloadTimer = window.setTimeout(() => {
+			liveReloadTimer = null;
+			void loadPage(false);
+		}, 250);
+	}
+
+	function reloadNow() {
+		page = 1;
+		void loadPage(false);
+	}
+
+	// If user selects "Most Bids", default to Desc order
+	sortSelect?.addEventListener("change", () => {
+		syncSortControls();
+		reloadNow();
 	});
+	orderSelect?.addEventListener("change", () => {
+		reloadNow();
+	});
+	qInput?.addEventListener("input", () => {
+		queueReload();
+	});
+	tagInput?.addEventListener("input", () => {
+		queueReload();
+	});
+	activeOnly?.addEventListener("change", () => {
+		reloadNow();
+	});
+	syncSortControls();
 
 	async function loadPage(append = false) {
-		if (loading) return;
-		loading = true;
 		if (!grid) return;
+		const currentRequest = ++requestId;
 		if (!append) grid.innerHTML = `<div class="text-gray-600">Loading…</div>`;
 		try {
 			const selectedSort = sortSelect?.value || "endsAt";
-			const clientSortByBids = selectedSort === "_count.bids";
 			const base: Record<string, any> = {
-				sort: clientSortByBids ? "created" : selectedSort,
+				sort: selectedSort,
 				sortOrder: (orderSelect?.value as "asc" | "desc") || "asc",
 				_active: activeOnly?.checked ?? true,
 				page,
@@ -156,27 +202,20 @@ export async function renderAllListings() {
 			// Always include bids so we can compute current price from highest bid
 			base._bids = true;
 			let envelope: PagedEnvelope<any>;
-			if (lastQueryMode === "search" && lastSearchQ.trim()) {
+			const searchText = qInput?.value.trim() ?? "";
+			if (searchText) {
 				const searchQuery = { ...base };
 				delete (searchQuery as any)._active; // not supported on search
-				envelope = await searchListings(lastSearchQ.trim(), searchQuery as any) as PagedEnvelope<any>;
+				envelope = await searchListings(searchText, searchQuery as any) as PagedEnvelope<any>;
 			} else {
 				const listQuery = { ...base, _tag: tagInput?.value?.trim() || undefined } as any;
 				envelope = await fetchListings(listQuery) as PagedEnvelope<any>;
 			}
+			if (currentRequest !== requestId) return;
 			const { data, meta } = envelope;
-			
-			const items = clientSortByBids
-				? [...data].sort((a: any, b: any) => {
-					const av = (a?._count?.bids ?? 0) as number;
-					const bv = (b?._count?.bids ?? 0) as number;
-					const cmp = av - bv;
-					return (orderSelect?.value || "desc") === "asc" ? cmp : -cmp;
-				})
-				: data;
 			const frag = document.createDocumentFragment();
 
-			items.forEach((item: any) => {
+			data.forEach((item: any) => {
 				const cover = item.media?.[0]?.url ?? "";
 				const title = item.title ?? "Untitled";
 				const descRaw = (item.description ?? "").trim();
@@ -220,10 +259,11 @@ export async function renderAllListings() {
 				nextBtn.classList.toggle("opacity-50", meta.isLastPage);
 			}
 			
-		} finally {
-			loading = false;
-			// Ensure countdown updater is running after render
 			startCountdownUpdater();
+		} catch (error) {
+			if (currentRequest !== requestId || !grid) return;
+			const message = error instanceof Error ? error.message : "Unknown error";
+			grid.innerHTML = `<div class="text-red-600">Failed to load listings: ${escapeHtml(message)}</div>`;
 		}
 	}
 
@@ -247,10 +287,6 @@ export async function renderAllListings() {
 	// Apply filters/search
 	filtersForm?.addEventListener("submit", (e) => {
 		e.preventDefault();
-		page = 1;
-		const q = qInput?.value ?? "";
-		lastSearchQ = q;
-		lastQueryMode = q.trim() ? "search" : "list";
-		loadPage(false);
+		reloadNow();
 	});
 }
